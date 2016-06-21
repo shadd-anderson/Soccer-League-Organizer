@@ -19,14 +19,6 @@ public class Player implements Comparable<Player>, Serializable {
     this.drafted = drafted;
   }
 
-  public String getFirstName() {
-    return firstName;
-  }
-
-  public String getLastName() {
-    return lastName;
-  }
-
   public int getHeightInInches() {
     return heightInInches;
   }
@@ -47,7 +39,6 @@ public class Player implements Comparable<Player>, Serializable {
 
   @Override
   public int compareTo(Player o) {
-    // We always want to sort by last name then first name
     if(equals(o)){
       return 0;
     }
@@ -81,6 +72,7 @@ public class Player implements Comparable<Player>, Serializable {
     return result;
   }
 
+  /*Converts player height in inches to height in feet. Used for a couple stats printing*/
   public String heightFeet(){
     return heightInInches/12 + "\' " + heightInInches%12 + "\"";
   }
@@ -90,6 +82,7 @@ public class Player implements Comparable<Player>, Serializable {
     return firstName + " " + lastName;
   }
 
+  /*Used for printing out the stats of a certain player*/
   public String toStringStats(){
     String experience;
     if(isPreviousExperience()){
