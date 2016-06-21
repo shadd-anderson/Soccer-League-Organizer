@@ -567,12 +567,10 @@ public class Menu {
         **106 is the highest discrepancy between ability scores possible based on the current player list. (I did this
         **calculation by hand, based on the players listed in the Players class. I could probably write another formula
         **to calculate it based on a different list, but because the list was set, I didn't feel that was necessary)
-
     Included in this report are the following requirement for the project:
         -Group team by average height
         -Group team with an average experience level
         -Group team by how many players have previous experience
-
     I realize this isn't exactly what the project asked for, but I figured this would be a little cleaner, as well as
     allow for the league organizer to see EXACTLY how fair his teams were*/
     private void fairnessReport() {
