@@ -1,8 +1,6 @@
 package com.teamtreehouse.model;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 public class Menu {
@@ -16,6 +14,28 @@ public class Menu {
     private Map<String, String> coachMenu = new TreeMap<>();
     private Map<String, String> statsMenu = new TreeMap<>();
     private Map<Team, Set<Player>> teams = new TreeMap<>();
+
+    public void save() {
+        try {
+            FileOutputStream fos = new FileOutputStream("save.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fos);
+            out.writeObject(teams);
+            out.close();
+            fos.close();
+            System.out.println("Teams saved!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void importFiles() throws IOException,ClassNotFoundException {
+            FileInputStream fis = new FileInputStream("save.ser");
+            ObjectInputStream in = new ObjectInputStream(fis);
+            teams = (Map<Team,Set<Player>>) in.readObject();
+            in.close();
+            fis.close();
+            System.out.println("Teams updated.");
+    }
 
     /*Defines the various menu options*/
     public Menu() {
@@ -171,6 +191,11 @@ public class Menu {
     /*Adds all the players from the player array into a set, which then alphabetizes the set. It is then put back
     into the original array, now alphabetized.*/
     public void run() {
+        try {
+            importFiles();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
         Collections.addAll(alphaSet, players);
         players = alphaSet.toArray(new Player[alphaSet.size()]);
         runMainMenu();
@@ -199,6 +224,8 @@ public class Menu {
                     break;
                 case "3":
                     System.out.println("Thanks for visiting the Youth Soccer League! Come again soon.");
+                    save();
+                    System.exit(0);
                     break;
                 default:
                     invalidChoice();
@@ -349,6 +376,7 @@ public class Menu {
                 }
             } while (continuing.equals("yes"));
         }
+        runOrganMenu();
     }
 
     /*Method used to remove players from teams*/
@@ -426,6 +454,7 @@ public class Menu {
                 } while (continuing.equals("yes"));
             }
         }
+        runOrganMenu();
     }
 
     /*Reusable method that allows for a user to add/remove players on a different team*/
@@ -567,7 +596,7 @@ public class Menu {
         **106 is the highest discrepancy between ability scores possible based on the current player list. (I did this
         **calculation by hand, based on the players listed in the Players class. I could probably write another formula
         **to calculate it based on a different list, but because the list was set, I didn't feel that was necessary)
-    Included in this report are the following requirement for the project:
+    Included in this report are the following requirements for the project:
         -Group team by average height
         -Group team with an average experience level
         -Group team by how many players have previous experience

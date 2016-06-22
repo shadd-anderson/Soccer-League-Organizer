@@ -1,6 +1,8 @@
 package com.teamtreehouse.model;
 
-public class Team implements Comparable<Team>{
+import java.io.Serializable;
+
+public class Team implements Comparable<Team>, Serializable {
     private String name;
     private String coach;
 
@@ -37,5 +39,12 @@ public class Team implements Comparable<Team>{
 
         Team team = (Team) o;
         return coach.equals(team.coach) && name.equals(team.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + coach.hashCode();
+        return result;
     }
 }
