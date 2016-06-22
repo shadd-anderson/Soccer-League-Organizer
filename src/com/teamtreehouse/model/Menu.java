@@ -15,6 +15,7 @@ public class Menu {
     private Map<String, String> statsMenu = new TreeMap<>();
     private Map<Team, Set<Player>> teams;
 
+    /*Saves the teams and players list to be used again next time*/
     private void save() {
         try {
             FileOutputStream teamSave = new FileOutputStream("teams.ser");
@@ -33,6 +34,7 @@ public class Menu {
         }
     }
 
+    /*Imports the players and teams files*/
     private void importFiles() throws IOException,ClassNotFoundException {
             FileInputStream teamLoad = new FileInputStream("teams.ser");
             FileInputStream playerLoad = new FileInputStream("players.ser");
@@ -196,8 +198,9 @@ public class Menu {
         }
     }
 
-    /*Adds all the players from the player array into a set, which then alphabetizes the set. It is then put back
-    into the original array, now alphabetized.*/
+    /*Attempts to re-load the players and teams from previous usage. If it fails, it adds all the players from the
+    player array into a treeSet called "alphaSet", which alphabetizes the set. It is then put back into the original
+    array, now alphabetized.*/
     public void run() {
         System.out.printf("Attempting to load teams... Please wait...%n%n");
         try {
