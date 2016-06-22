@@ -1,6 +1,9 @@
 package com.teamtreehouse.model;
 
 import java.io.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 public class Menu {
@@ -36,15 +39,33 @@ public class Menu {
 
     /*Imports the players and teams files*/
     private void importFiles() throws IOException,ClassNotFoundException {
-            FileInputStream teamLoad = new FileInputStream("teams.ser");
-            FileInputStream playerLoad = new FileInputStream("players.ser");
-            ObjectInputStream teamsIn = new ObjectInputStream(teamLoad);
-            ObjectInputStream playersIn = new ObjectInputStream(playerLoad);
-            teams = (Map<Team,Set<Player>>) teamsIn.readObject();
-            players = (Player[]) playersIn.readObject();
-            teamsIn.close();
-            teamLoad.close();
-            System.out.println("Teams successfully loaded!");
+        FileInputStream teamLoad = new FileInputStream("teams.ser");
+        FileInputStream playerLoad = new FileInputStream("players.ser");
+        ObjectInputStream teamsIn = new ObjectInputStream(teamLoad);
+        ObjectInputStream playersIn = new ObjectInputStream(playerLoad);
+        teams = (Map<Team, Set<Player>>) teamsIn.readObject();
+        players = (Player[]) playersIn.readObject();
+        teamsIn.close();
+        teamLoad.close();
+        playersIn.close();
+        playerLoad.close();
+        System.out.println("Teams successfully loaded!");
+    }
+
+    /*Resets the program. Deletes all teams and resets player list to the default listed in the Players class*/
+    private void reset(){
+        Path playerPath = FileSystems.getDefault().getPath("players.ser");
+        Path teamPath = FileSystems.getDefault().getPath("teams.ser");
+        try {
+            Files.delete(playerPath);
+            Files.delete(teamPath);
+            teams.clear();
+            resetPlayers();
+            System.out.println("Players and teams succesfully reset.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        runMainMenu();
     }
 
     /*Defines the various menu options*/
@@ -58,6 +79,7 @@ public class Menu {
         organMenu.put("4", "View current rosters and their stats");
         organMenu.put("5", "Go to the coach menu");
         organMenu.put("6", "Go back to the main menu");
+        organMenu.put("7", "Reset program");
         coachMenu.put("1", "View/print your team roster");
         coachMenu.put("2", "Go to the organizer menu");
         coachMenu.put("3", "Go back to the main menu");
@@ -208,13 +230,19 @@ public class Menu {
             MAX_TEAMS = players.length/MAX_PLAYERS;
         } catch (IOException | ClassNotFoundException e) {
             System.out.printf("Teams unable to be loaded.%nPlease create new teams from the organizer menu.%n%n");
-            players = Players.load();
-            Collections.addAll(alphaSet, players);
-            players = alphaSet.toArray(new Player[alphaSet.size()]);
+            resetPlayers();
             teams = new TreeMap<>();
             MAX_TEAMS = players.length/MAX_PLAYERS;
         }
         runMainMenu();
+    }
+
+    /*Adds all the players from the player array into a treeSet called "alphaSet", which alphabetizes the set.
+    It is then put back into the original array, now alphabetized*/
+    private void resetPlayers() {
+        players = Players.load();
+        Collections.addAll(alphaSet, players);
+        players = alphaSet.toArray(new Player[alphaSet.size()]);
     }
 
     /*Runs the main menu*/
@@ -296,12 +324,15 @@ public class Menu {
                 case "6":
                     runMainMenu();
                     break;
+                case "7":
+                    reset();
+                    break;
                 default:
                     invalidChoice();
             }
         }
         while (!choice.equals("5") && !choice.equals("6") && !choice.equals("4")
-                && !choice.equals("3") && !choice.equals("2"));
+                && !choice.equals("3") && !choice.equals("2") && !choice.equals("7"));
     }
 
     /*Method used to create a new team*/
