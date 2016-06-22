@@ -199,6 +199,7 @@ public class Menu {
                     break;
                 case "3":
                     System.out.println("Thanks for visiting the Youth Soccer League! Come again soon.");
+                    System.exit(0);
                     break;
                 default:
                     invalidChoice();
@@ -349,6 +350,7 @@ public class Menu {
                 }
             } while (continuing.equals("yes"));
         }
+        runOrganMenu();
     }
 
     /*Method used to remove players from teams*/
@@ -426,6 +428,7 @@ public class Menu {
                 } while (continuing.equals("yes"));
             }
         }
+        runOrganMenu();
     }
 
     /*Reusable method that allows for a user to add/remove players on a different team*/
