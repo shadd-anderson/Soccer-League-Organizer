@@ -5,36 +5,44 @@ import java.util.*;
 
 public class Menu {
     private BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-    private Player[] players = Players.load();
+    private Player[] players;
     private final int MAX_PLAYERS = 11;
-    private final int MAX_TEAMS = players.length / MAX_PLAYERS;
+    private int MAX_TEAMS;
     private Set<Player> alphaSet = new TreeSet<>();
     private Map<String, String> mainMenu = new TreeMap<>();
     private Map<String, String> organMenu = new TreeMap<>();
     private Map<String, String> coachMenu = new TreeMap<>();
     private Map<String, String> statsMenu = new TreeMap<>();
-    private Map<Team, Set<Player>> teams = new TreeMap<>();
+    private Map<Team, Set<Player>> teams;
 
-    public void save() {
+    private void save() {
         try {
-            FileOutputStream fos = new FileOutputStream("save.ser");
-            ObjectOutputStream out = new ObjectOutputStream(fos);
-            out.writeObject(teams);
-            out.close();
-            fos.close();
-            System.out.println("Teams saved!");
+            FileOutputStream teamSave = new FileOutputStream("teams.ser");
+            FileOutputStream playerSave = new FileOutputStream("players.ser");
+            ObjectOutputStream team = new ObjectOutputStream(teamSave);
+            ObjectOutputStream player = new ObjectOutputStream(playerSave);
+            player.writeObject(players);
+            team.writeObject(teams);
+            player.close();
+            team.close();
+            teamSave.close();
+            playerSave.close();
+            System.out.println("Teams successfully saved!");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void importFiles() throws IOException,ClassNotFoundException {
-            FileInputStream fis = new FileInputStream("save.ser");
-            ObjectInputStream in = new ObjectInputStream(fis);
-            teams = (Map<Team,Set<Player>>) in.readObject();
-            in.close();
-            fis.close();
-            System.out.println("Teams updated.");
+            FileInputStream teamLoad = new FileInputStream("teams.ser");
+            FileInputStream playerLoad = new FileInputStream("players.ser");
+            ObjectInputStream teamsIn = new ObjectInputStream(teamLoad);
+            ObjectInputStream playersIn = new ObjectInputStream(playerLoad);
+            teams = (Map<Team,Set<Player>>) teamsIn.readObject();
+            players = (Player[]) playersIn.readObject();
+            teamsIn.close();
+            teamLoad.close();
+            System.out.println("Teams successfully loaded!");
     }
 
     /*Defines the various menu options*/
@@ -191,13 +199,18 @@ public class Menu {
     /*Adds all the players from the player array into a set, which then alphabetizes the set. It is then put back
     into the original array, now alphabetized.*/
     public void run() {
+        System.out.printf("Attempting to load teams... Please wait...%n%n");
         try {
             importFiles();
+            MAX_TEAMS = players.length/MAX_PLAYERS;
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("Teams unable to be loaded.%nPlease create new teams from the organizer menu.%n%n");
+            players = Players.load();
+            Collections.addAll(alphaSet, players);
+            players = alphaSet.toArray(new Player[alphaSet.size()]);
+            teams = new TreeMap<>();
+            MAX_TEAMS = players.length/MAX_PLAYERS;
         }
-        Collections.addAll(alphaSet, players);
-        players = alphaSet.toArray(new Player[alphaSet.size()]);
         runMainMenu();
     }
 
