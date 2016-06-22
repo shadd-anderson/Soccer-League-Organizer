@@ -30,7 +30,7 @@ public class Menu {
             playerSave.close();
             System.out.println("Teams successfully saved!");
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Problem saving teams. You will have to start over next time.");
         }
     }
 
@@ -207,7 +207,7 @@ public class Menu {
             importFiles();
             MAX_TEAMS = players.length/MAX_PLAYERS;
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Teams unable to be loaded.%nPlease create new teams from the organizer menu.%n%n");
+            System.out.printf("Teams unable to be loaded.%nPlease create new teams from the organizer menu.%n%n");
             players = Players.load();
             Collections.addAll(alphaSet, players);
             players = alphaSet.toArray(new Player[alphaSet.size()]);
