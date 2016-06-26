@@ -5,11 +5,12 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.*;
 
 public class Menu {
     private BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
     private Player[] players;
-    private final int MAX_PLAYERS = 11;
+    private final double MAX_PLAYERS = 11;
     private int MAX_TEAMS;
     private Set<Player> alphaSet = new TreeSet<>();
     private Map<String, String> mainMenu = new TreeMap<>();
@@ -17,20 +18,26 @@ public class Menu {
     private Map<String, String> coachMenu = new TreeMap<>();
     private Map<String, String> statsMenu = new TreeMap<>();
     private Map<Team, Set<Player>> teams;
+    private Queue<Player> waitingList;
 
     /*Saves the teams and players list to be used again next time*/
     private void save() {
         try {
             FileOutputStream teamSave = new FileOutputStream("teams.ser");
             FileOutputStream playerSave = new FileOutputStream("players.ser");
+            FileOutputStream waitSave = new FileOutputStream("waitinglist.ser");
             ObjectOutputStream team = new ObjectOutputStream(teamSave);
             ObjectOutputStream player = new ObjectOutputStream(playerSave);
+            ObjectOutputStream wait = new ObjectOutputStream(waitSave);
             player.writeObject(players);
             team.writeObject(teams);
+            wait.writeObject(waitingList);
             player.close();
             team.close();
+            wait.close();
             teamSave.close();
             playerSave.close();
+            waitSave.close();
             System.out.println("Teams successfully saved!");
         } catch (IOException e) {
             System.out.println("Problem saving teams. You will have to start over next time.");
@@ -41,14 +48,19 @@ public class Menu {
     private void importFiles() throws IOException,ClassNotFoundException {
         FileInputStream teamLoad = new FileInputStream("teams.ser");
         FileInputStream playerLoad = new FileInputStream("players.ser");
+        FileInputStream waitLoad = new FileInputStream("waitinglist.ser");
         ObjectInputStream teamsIn = new ObjectInputStream(teamLoad);
         ObjectInputStream playersIn = new ObjectInputStream(playerLoad);
+        ObjectInputStream waitinglistIn = new ObjectInputStream(waitLoad);
         teams = (Map<Team, Set<Player>>) teamsIn.readObject();
         players = (Player[]) playersIn.readObject();
+        waitingList = (Queue<Player>) waitinglistIn.readObject();
         teamsIn.close();
         teamLoad.close();
         playersIn.close();
         playerLoad.close();
+        waitinglistIn.close();
+        waitLoad.close();
         System.out.println("Teams successfully loaded!");
     }
 
@@ -56,15 +68,24 @@ public class Menu {
     private void reset(){
         Path playerPath = FileSystems.getDefault().getPath("players.ser");
         Path teamPath = FileSystems.getDefault().getPath("teams.ser");
+        Path waitPath = FileSystems.getDefault().getPath("waitinglist.ser");
         try {
             Files.delete(playerPath);
             Files.delete(teamPath);
+            Files.delete(waitPath);
             teams.clear();
             resetPlayers();
+            waitingList.clear();
+            MAX_TEAMS = (int)Math.ceil(players.length/MAX_PLAYERS);
             System.out.println("Players and teams succesfully reset.");
         } catch (IOException e) {
-            e.printStackTrace();
+            teams.clear();
+            resetPlayers();
+            waitingList.clear();
+            MAX_TEAMS = (int)Math.ceil(players.length/MAX_PLAYERS);
+            System.out.println("Players and teams succesfully reset.");
         }
+        enter();
         runMainMenu();
     }
 
@@ -74,12 +95,15 @@ public class Menu {
         mainMenu.put("2", "Coach");
         mainMenu.put("3", "Quit");
         organMenu.put("1", "Add a new team");
-        organMenu.put("2", "Add players to a team");
-        organMenu.put("3", "Remove players from a team");
-        organMenu.put("4", "View current rosters and their stats");
-        organMenu.put("5", "Go to the coach menu");
-        organMenu.put("6", "Go back to the main menu");
-        organMenu.put("7", "Reset program");
+        organMenu.put("2", "Add a new player to the waiting list");
+        organMenu.put("3", "Remove a player from current players");
+        organMenu.put("4", "Add players to a team roster");
+        organMenu.put("5", "Remove players from a team roster");
+        organMenu.put("6", "View current rosters and their stats");
+        organMenu.put("7", "Go to the coach menu");
+        organMenu.put("8", "Go back to the main menu");
+        organMenu.put("9", "Reset program");
+        organMenu.put("10", "Optimize teams");
         coachMenu.put("1", "View/print your team roster");
         coachMenu.put("2", "Go to the organizer menu");
         coachMenu.put("3", "Go back to the main menu");
@@ -227,12 +251,13 @@ public class Menu {
         System.out.printf("Attempting to load teams... Please wait...%n%n");
         try {
             importFiles();
-            MAX_TEAMS = players.length/MAX_PLAYERS;
+            MAX_TEAMS = (int)Math.ceil(players.length/MAX_PLAYERS);
         } catch (IOException | ClassNotFoundException e) {
             System.out.printf("Teams unable to be loaded.%nPlease create new teams from the organizer menu.%n%n");
             resetPlayers();
             teams = new TreeMap<>();
-            MAX_TEAMS = players.length/MAX_PLAYERS;
+            MAX_TEAMS = (int)Math.ceil(players.length/MAX_PLAYERS);
+            waitingList = new ArrayDeque<>();
         }
         runMainMenu();
     }
@@ -291,48 +316,174 @@ public class Menu {
                 case "1":
                     newTeam();
                     enter();
-                    runOrganMenu();
                     break;
                 case "2":
-                    if (teamsExist()) {
-                        addPlayerToTeam();
-                    } else {
-                        runOrganMenu();
-                    }
+                    addPlayer();
                     break;
                 case "3":
-                    if (teamsExist()) {
-                        removePlayerFromTeam();
-                    } else {
-                        runOrganMenu();
-                    }
+                    removePlayer();
                     break;
                 case "4":
+                    if (teamsExist()) {
+                        addPlayerToTeam();
+                    }
+                    break;
+                case "5":
+                    if (teamsExist()) {
+                        removePlayerFromTeam();
+                    }
+                    break;
+                case "6":
                     if (teamsExist()) {
                         runStatsMenu();
                     } else {
                         runOrganMenu();
                     }
                     break;
-                case "5":
+                case "7":
                     if (teamsExist()) {
                         runCoachMenu();
                     } else {
                         runOrganMenu();
                     }
                     break;
-                case "6":
+                case "8":
                     runMainMenu();
                     break;
-                case "7":
+                case "9":
                     reset();
+                    break;
+                case "10":
+                    Players.optimizeTeams(players,teams);
                     break;
                 default:
                     invalidChoice();
             }
         }
-        while (!choice.equals("5") && !choice.equals("6") && !choice.equals("4")
-                && !choice.equals("3") && !choice.equals("2") && !choice.equals("7"));
+        while (!choice.equals("7") && !choice.equals("8") && !choice.equals("6") && !choice.equals("9"));
+    }
+
+    private void addPlayer() {
+        String confirmation;
+        String firstName;
+        String lastName;
+        int height;
+        boolean hasPlayedBefore = false;
+        do {
+            System.out.println("Please enter the first name of the player you would like to add to the waiting list:");
+            firstName = readLine();
+            System.out.println("And now the last name:");
+            lastName = readLine();
+            System.out.printf("%s %s. Is this correct? (y or n)%n", firstName, lastName);
+            confirmation = inputTrimmer();
+            if(!confirmation.equals("n") && !confirmation.equals("y")){
+                do{
+                    System.out.println("Input not recognized. Please enter y or n.");
+                    confirmation = inputTrimmer();
+                } while (!confirmation.equals("n") && !confirmation.equals("y"));
+            }
+        } while (confirmation.equals("n"));
+        do {
+            System.out.printf("Please enter the height (in inches) of %s %s:%n",firstName,lastName);
+            do{
+                height=numberChecker();
+            } while (height == 0);
+            System.out.printf("%s %s is %d inches tall (%d\' %d\"). Is this correct? (y or n)%n",
+                    firstName,lastName,height,height/12,height%12);
+            confirmation = inputTrimmer();
+            if(!confirmation.equals("n") && !confirmation.equals("y")){
+                do{
+                    System.out.println("Input not recognized. Please enter y or n.");
+                    confirmation = inputTrimmer();
+                } while (!confirmation.equals("n") && !confirmation.equals("y"));
+            }
+        } while (confirmation.equals("n"));
+        do{
+            System.out.printf("Has %s %s played before? (y or n)%n",firstName,lastName);
+            String experience;
+            do{
+                experience=inputTrimmer();
+                if (experience.equals("y")) {
+                    hasPlayedBefore = true;
+                } else if(!experience.equals("n")) {
+                    System.out.println("Input not recognized. Please enter y or n");
+                }
+            } while(!experience.equals("y") && !experience.equals("n"));
+            if(hasPlayedBefore){
+                System.out.printf("Are you sure %s %s has played before? (y or n)%n",firstName,lastName);
+            } else {
+                System.out.printf("Are you sure %s %s has not played before? (y or n)%n",firstName,lastName);
+            }
+            confirmation = inputTrimmer();
+            if(!confirmation.equals("n") && !confirmation.equals("y")){
+                do{
+                    System.out.println("Input not recognized. Please enter y or n.");
+                    confirmation = inputTrimmer();
+                } while (!confirmation.equals("n") && !confirmation.equals("y"));
+            }
+        } while (confirmation.equals("n"));
+        Player player = new Player(firstName,lastName,height,hasPlayedBefore,false);
+        waitingList.add(player);
+        System.out.println("New player: " + player.toStringStats() + " added to the waiting list!");
+        enter();
+    }
+
+    private void removePlayer() {
+        Player newPlayer = waitingList.peek();
+        if (newPlayer == null) {
+            System.out.println("No new player can fill the void made when a player is deleted.");
+            System.out.println("Please add a new player to the waiting list before removing a current player");
+        } else {
+            System.out.println("Here is a list of the current players:");
+            int playerNumber = 1;
+            for (Player player : players) {
+                System.out.printf("%d. %s%n", playerNumber, player.toStringStats());
+                playerNumber++;
+            }
+            Player playerChoice = null;
+            int choice;
+            do {
+                System.out.println("Please select the number of the player you would like " +
+                        "to remove from the player list:");
+                System.out.printf("(Player will be replaced with %s, who is next in line on the waiting list)%n",
+                        newPlayer.toString());
+                do {
+                    choice = numberChecker();
+                } while (choice == 0);
+                if (choice <= players.length) {
+                    playerChoice = players[choice - 1];
+                } else {
+                    System.out.printf("Sorry, there is no player #%d. There are %d players to choose from.%n",
+                            choice, players.length);
+                }
+            } while (choice > players.length);
+            assert playerChoice != null;
+            if (!playerChoice.isDrafted()) {
+                System.out.printf("Are you sure you'd like to remove %s from the player list? (y or n)%n",
+                        playerChoice.toString());
+                String confirmation;
+                do {
+                    confirmation = inputTrimmer();
+                    switch (confirmation) {
+                        case "y":
+                            System.out.println("Please wait.....");
+                            players[choice - 1] = waitingList.poll();
+                            System.out.printf("%s removed from player list and replaced with %s!%n",
+                                    playerChoice.toString(), newPlayer.toString());
+                            break;
+                        case "n":
+                            System.out.println("Removal cancelled.");
+                            break;
+                        default:
+                            System.out.println("Please enter either 'y' or 'n'");
+                    }
+                } while (!confirmation.equals("y") && !confirmation.equals("n"));
+            } else {
+                System.out.printf("Sorry, %s is currently on a team. %nPlease remove him from his current team before " +
+                        "removing him from the player list.%n",playerChoice.toString());
+            }
+        }
+        enter();
     }
 
     /*Method used to create a new team*/
@@ -351,7 +502,9 @@ public class Menu {
             } while (containsTeam(teams, name));
             System.out.printf("Please enter the coach for the %s:%n", name);
             coach = readLine();
-            teams.put(new Team(name, coach), playerList);
+            Team newTeam = new Team(name, coach);
+            newTeam.playerSet = playerList;
+            teams.put(newTeam, playerList);
             System.out.printf("Team \"%s\" (coached by %s) created! You may now add new players.%n", name, coach);
         } else {
             System.out.printf("Sorry, there can only be a max of %d teams.%n", MAX_TEAMS);
@@ -378,18 +531,15 @@ public class Menu {
                     }
                     System.out.printf("Please select the number of the player you would like to add to the %s:%n",
                             currentTeam.getName());
-                    int choice = 0;
+                    int choice;
                     do {
                         do {
-                            try {
-                                choice = Integer.parseInt(readLine().replaceAll("[\\D]", ""));
-                            } catch (NumberFormatException nfe) {
-                                System.out.println("Please enter a number.");
-                            }
+                            choice = numberChecker();
                         } while (choice == 0);
                         if (playerExists(players, choice)) {
                             if (!players[choice - 1].isDrafted()) {
                                 currentRoster.add(players[choice - 1]);
+                                currentTeam.addPlayer(players[choice-1]);
                                 players[choice - 1].setDrafted();
                                 System.out.printf("%s added to %s!%n",
                                         players[choice - 1].toString(), currentTeam.getName());
@@ -404,26 +554,25 @@ public class Menu {
                             choice = 0;
                         }
                     } while (!playerExists(players, choice));
-                    System.out.printf("Would you like to add another player to the %s? (yes or no)%n",
+                    System.out.printf("Would you like to add another player to the %s? (y or n)%n",
                             currentTeam.getName());
                     do {
                         continuing = inputTrimmer();
-                        if (continuing.equals("no")) {
+                        if (continuing.equals("n")) {
                             teams.put(currentTeam, currentRoster);
                             otherTeam("add players to");
-                        } else if (!continuing.equals("yes")) {
-                            System.out.println("Input not recognized. Please enter either yes or no.");
+                        } else if (!continuing.equals("y")) {
+                            System.out.println("Input not recognized. Please enter either y or n.");
                         }
-                    } while (!continuing.equals("yes") && !continuing.equals("no"));
+                    } while (!continuing.equals("y") && !continuing.equals("n"));
                 } else {
                     System.out.printf("Sorry, too many players on %s. There can only be a max of %d.%n" +
                             "Please remove a player before adding another.%n", currentTeam.toString(), MAX_PLAYERS);
-                    continuing = "no";
+                    continuing = "n";
                     enter();
                 }
-            } while (continuing.equals("yes"));
+            } while (continuing.equals("y"));
         }
-        runOrganMenu();
     }
 
     /*Method used to remove players from teams*/
@@ -458,16 +607,16 @@ public class Menu {
                         }
                     } while (choice > rosterArray.length);
                     assert playerChoice != null;
-                    System.out.printf("Are you sure you'd like to remove %s from the %s?%n",
+                    System.out.printf("Are you sure you'd like to remove %s from the %s? (y or n)%n",
                             playerChoice.toString(), currentTeam.toString());
-                    System.out.println("Please type 'yes' if you are sure. If not, please type 'no'.");
                     String confirmation;
                     do {
                         confirmation = inputTrimmer();
                         switch (confirmation) {
-                            case "yes":
+                            case "y":
                                 System.out.println("Please wait.....");
                                 currentRoster.remove(playerChoice);
+                                currentTeam.removePlayer(playerChoice);
                                 System.out.printf("%s removed from %s!%n",
                                         playerChoice.toString(), currentTeam.toString());
                                 for (Player player : players) {
@@ -476,50 +625,49 @@ public class Menu {
                                     }
                                 }
                                 break;
-                            case "no":
+                            case "n":
                                 break;
                             default:
-                                System.out.println("Please enter either 'yes' or 'no'");
+                                System.out.println("Please enter either 'y' or 'n'");
                         }
-                    } while (!confirmation.equals("yes") && !confirmation.equals("no"));
+                    } while (!confirmation.equals("y") && !confirmation.equals("n"));
                     teams.put(currentTeam, currentRoster);
                     if (playersExist(currentRoster, currentTeam)) {
                         System.out.printf("Would you like to remove another player from the %s? " +
-                                "(Please enter yes or no)%n", currentTeam.toString());
+                                "(Please enter y or n)%n", currentTeam.toString());
                         do {
                             continuing = inputTrimmer();
-                            if (continuing.equals("no")) {
+                            if (continuing.equals("n")) {
                                 otherTeam("remove players from");
-                            } else if (!continuing.equals("yes")) {
-                                System.out.println("Input not recognized. Please enter either yes or no.");
+                            } else if (!continuing.equals("y")) {
+                                System.out.println("Input not recognized. Please enter either y or n.");
                             }
-                        } while (!continuing.equals("yes") && !continuing.equals("no"));
+                        } while (!continuing.equals("y") && !continuing.equals("n"));
                     } else {
-                        continuing = "no";
+                        continuing = "n";
                         otherTeam("remove players from");
                     }
-                } while (continuing.equals("yes"));
+                } while (continuing.equals("y"));
             }
         }
-        runOrganMenu();
     }
 
     /*Reusable method that allows for a user to add/remove players on a different team*/
     private void otherTeam(String menu) {
-        System.out.printf("Would you like to %s a different team? (yes or no)%n", menu);
+        System.out.printf("Would you like to %s a different team? (y or n)%n", menu);
         String otherTeam;
         do {
             otherTeam = inputTrimmer();
-            if (otherTeam.equals("yes")) {
+            if (otherTeam.equals("y")) {
                 if (menu.equals("add players to")) {
                     addPlayerToTeam();
                 } else if (menu.equals("remove players from")) {
                     removePlayerFromTeam();
                 }
-            } else if (!otherTeam.equals("no")) {
-                System.out.println("Input not recognized. Please enter either yes or no.");
+            } else if (!otherTeam.equals("n")) {
+                System.out.println("Input not recognized. Please enter either y or n.");
             }
-        } while (!otherTeam.equals("no") && !otherTeam.equals("yes"));
+        } while (!otherTeam.equals("n") && !otherTeam.equals("y"));
     }
 
     /*Runs the coach menu*/
@@ -640,9 +788,8 @@ public class Menu {
     That score is then used to create the league's "fairness score" from 0%-100%. The calculations are as follows:
         -Ability score = team average height in inches + percentage of team that has previous experience.
         -Fairness score = (top ability score - bottom ability score)/106
-        **106 is the highest discrepancy between ability scores possible based on the current player list. (I did this
-        **calculation by hand, based on the players listed in the Players class. I could probably write another formula
-        **to calculate it based on a different list, but because the list was set, I didn't feel that was necessary)
+        **High discrepancy is the highest possible discrepancy between team ability scores based on the current player
+        **list. This is calculated in the Players class
     Included in this report are the following requirements for the project:
         -Group team by average height
         -Group team with an average experience level
@@ -682,7 +829,7 @@ public class Menu {
                 lowScore = (Double) entry.getValue();
             }
         }
-        double score = (1.00 - ((highScore - lowScore) / 106)) * 100;
+        double score = (1 - ((highScore - lowScore) / Players.highDiscrepancy(players))) * 100;
         System.out.printf("%nTotal fairness score: %.0f%%%n", score);
         enter();
     }
