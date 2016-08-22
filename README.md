@@ -1,5 +1,5 @@
 # Soccer-League-Organizer
 
-This is the second project for the Treehouse Techdegree program. **Now able to save for future usage!**
+A console-based program used to organize and manage a youth soccer league. The program contains an example set of players.
 
-Enjoy!
+Users can add teams, assign coaches, manage players, as well as automatically create teams based on fairness factors (height and previous experience). It also includes a report titled "Fairness Report" that calculates the equality of teams.
